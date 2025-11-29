@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>InChrist - History</title>
+    <title>InChrist - Attendance</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,24 +11,24 @@
     <div class="container">
         <div class="header-logo">
             <img src="images/logo.svg" alt="InChrist Logo" class="logo-image" onerror="this.style.display='none'">
-            <h1>Attendance History</h1>
+            <h1>Mark Attendance</h1>
         </div>
-        <div style="margin-bottom: 20px; background: rgba(255, 255, 255, 0.8); padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);">
-            <label for="historyDate" style="display: block; margin-bottom: 10px; font-weight: 600; color: #2c3e50; font-size: 1.1em;">Select Date:</label>
-            <input type="date" id="historyDate" required>
-            <button id="exportBtn" class="btn btn-primary" style="display: none; margin-top: 10px;">Export to CSV</button>
+        <div class="date-display">
+            <strong>Today's Date: </strong><span id="todayDate"></span>
         </div>
-        <div id="historyContainer">
-            <!-- Attendance history will be dynamically generated here -->
-        </div>
+        <div id="attendanceContainer">
+            </div>
         <div class="decorative-divider"></div>
         <div class="nav-buttons">
-            <a href="attendance.html" class="btn btn-secondary">Attendance</a>
+            <button id="saveAttendanceBtn" class="btn btn-primary">Save Attendance</button>
             <a href="members.html" class="btn btn-secondary">Members</a>
+            <a href="history.html" class="btn btn-secondary">History</a>
             <button onclick="logout()" class="btn btn-danger">Logout</button>
         </div>
     </div>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
-
