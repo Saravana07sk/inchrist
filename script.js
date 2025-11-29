@@ -1,5 +1,5 @@
 // Constants
-const ADMIN_PASSWORD = "admin123"; // Change this password as needed
+const ADMIN_PASSWORD = "admin12"; // Change this password as needed
 const STORAGE_KEYS = {
     IS_LOGGED_IN: "isLoggedIn",
     MEMBERS: "members"
@@ -355,4 +355,5 @@ if (window.location.pathname.includes("attendance.html") ||
     window.location.pathname.includes("history.html")) {
     requireAuth();
 }
+
 
