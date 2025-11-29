@@ -1,97 +1,135 @@
-// Constants
-const ADMIN_PASSWORD = "admin12"; // Change this password as needed
-const STORAGE_KEYS = {
-    IS_LOGGED_IN: "isLoggedIn",
-    MEMBERS: "members"
+// ==================== FIREBASE INITIALIZATION ====================
+
+// 1. Your actual firebaseConfig object
+const firebaseConfig = {
+    apiKey: "AIzaSyADWeItdkynb8F-wkyOE5vRRtiS3CADAQ8",
+    authDomain: "inchrist-9a495.firebaseapp.com",
+    projectId: "inchrist-9a495",
+    storageBucket: "inchrist-9a495.appspot.com", 
+    messagingSenderId: "374704743098",
+    appId: "1:374704743098:web:ab101bd1511737927fd883",
+    measurementId: "G-NG7190WF2V"
 };
 
-// ==================== AUTHENTICATION ====================
+// 2. Initialize Firebase App (V8 Namespaced Syntax)
+firebase.initializeApp(firebaseConfig);
+
+// 3. Get a reference to the Firestore database
+const db = firebase.firestore(); 
+
+// ==================== END FIREBASE INITIALIZATION ====================
+
+// 🔴 The email linked to your Firebase Authentication user.
+const ADMIN_EMAIL = "sk7102006saravana@gmail.com"; 
+const STORAGE_KEYS = {}; 
+
+// ==================== AUTHENTICATION (NEW FIREBASE AUTH LOGIC) ====================
 
 function checkAuth() {
-    const isLoggedIn = localStorage.getItem(STORAGE_KEYS.IS_LOGGED_IN);
-    return isLoggedIn === "true";
+    const user = firebase.auth().currentUser;
+    return user !== null;
 }
 
-function login(password) {
-    if (password === ADMIN_PASSWORD) {
-        localStorage.setItem(STORAGE_KEYS.IS_LOGGED_IN, "true");
-        window.location.href = "attendance.html";
+async function login(password) {
+    try {
+        await firebase.auth().signInWithEmailAndPassword(ADMIN_EMAIL, password);
         return true;
+    } catch (error) {
+        console.error("Login failed:", error.message);
+        alert("Login Failed. Check your password.");
+        return false;
     }
-    return false;
 }
 
 function logout() {
-    localStorage.removeItem(STORAGE_KEYS.IS_LOGGED_IN);
-    window.location.href = "index.html";
+    firebase.auth().signOut().catch((error) => {
+        console.error("Logout error:", error);
+    });
 }
 
 function requireAuth() {
-    if (!checkAuth()) {
-        window.location.href = "index.html";
-    }
-}
+    firebase.auth().onAuthStateChanged(user => {
+        const path = window.location.pathname;
+        const isProtectedPage = path.includes("attendance.html") || 
+                                path.includes("members.html") || 
+                                path.includes("history.html");
 
-// ==================== MEMBERS MANAGEMENT ====================
-
-function loadMembers() {
-    const membersJson = localStorage.getItem(STORAGE_KEYS.MEMBERS);
-    if (membersJson) {
-        try {
-            return JSON.parse(membersJson);
-        } catch (e) {
-            return [];
+        if (user) {
+            if (!isProtectedPage) {
+                window.location.href = "attendance.html";
+            }
+        } else {
+            if (isProtectedPage) {
+                window.location.href = "index.html";
+            }
         }
+    });
+}
+
+
+// ==================== MEMBERS MANAGEMENT (FIREBASE LOGIC) ====================
+
+async function loadMembers() {
+    try {
+        const snapshot = await db.collection("members").orderBy("name").get();
+        return snapshot.docs.map(doc => ({ 
+            id: doc.id, 
+            ...doc.data() 
+        }));
+    } catch (error) {
+        console.error("Error loading members from Firestore:", error);
+        return [];
     }
-    return [];
 }
 
-function saveMembers(members) {
-    localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(members));
-}
-
-function addMember(name) {
+async function addMember(name) {
     if (!name || name.trim() === "") {
         return false;
     }
-    const members = loadMembers();
-    const newMember = {
-        id: Date.now().toString(),
-        name: name.trim()
-    };
-    members.push(newMember);
-    saveMembers(members);
-    return true;
+    
+    try {
+        await db.collection("members").add({
+            name: name.trim()
+        });
+        return true;
+    } catch (error) {
+        console.error("Error adding member:", error);
+        return false;
+    }
 }
 
-function editMember(id, newName) {
+async function editMember(id, newName) {
     if (!newName || newName.trim() === "") {
         return false;
     }
-    const members = loadMembers();
-    const memberIndex = members.findIndex(m => m.id === id);
-    if (memberIndex !== -1) {
-        members[memberIndex].name = newName.trim();
-        saveMembers(members);
+    try {
+        await db.collection("members").doc(id).update({
+            name: newName.trim()
+        });
         return true;
+    } catch (error) {
+        console.error("Error editing member:", error);
+        return false;
     }
-    return false;
 }
 
-function deleteMember(id) {
-    const members = loadMembers();
-    const filteredMembers = members.filter(m => m.id !== id);
-    saveMembers(filteredMembers);
-    return true;
+async function deleteMember(id) {
+    try {
+        await db.collection("members").doc(id).delete();
+        return true;
+    } catch (error) {
+        console.error("Error deleting member:", error);
+        return false;
+    }
 }
 
-function renderMembersList() {
-    const members = loadMembers();
+async function renderMembersList() {
+    const members = await loadMembers(); 
     const container = document.getElementById("membersList");
     if (!container) return;
 
     if (members.length === 0) {
-        container.innerHTML = "<p>No members added yet.</p>";
+        container.innerHTML = "<p class='no-data'>No members added yet.</p>";
         return;
     }
 
@@ -111,33 +149,33 @@ function renderMembersList() {
     container.innerHTML = html;
 }
 
-function editMemberPrompt(id) {
-    const members = loadMembers();
+async function editMemberPrompt(id) {
+    const members = await loadMembers(); 
     const member = members.find(m => m.id === id);
     if (!member) return;
 
     const newName = prompt("Enter new name:", member.name);
     if (newName !== null) {
-        if (editMember(id, newName)) {
-            renderMembersList();
+        if (await editMember(id, newName)) { 
+            await renderMembersList(); 
         } else {
             alert("Failed to edit member. Name cannot be empty.");
         }
     }
 }
 
-function deleteMemberConfirm(id) {
-    const members = loadMembers();
+async function deleteMemberConfirm(id) {
+    const members = await loadMembers(); 
     const member = members.find(m => m.id === id);
     if (!member) return;
 
     if (confirm(`Are you sure you want to delete "${member.name}"?`)) {
-        deleteMember(id);
-        renderMembersList();
+        await deleteMember(id); 
+        await renderMembersList(); 
     }
 }
 
-// ==================== ATTENDANCE SYSTEM ====================
+// ==================== ATTENDANCE SYSTEM (FIREBASE LOGIC) ====================
 
 function getTodayDate() {
     const today = new Date();
@@ -147,39 +185,46 @@ function getTodayDate() {
     return `${year}-${month}-${day}`;
 }
 
-function loadAttendance(date) {
-    const attendanceJson = localStorage.getItem(date);
-    if (attendanceJson) {
-        try {
-            return JSON.parse(attendanceJson);
-        } catch (e) {
-            return {};
+async function loadAttendance(date) {
+    try {
+        const doc = await db.collection("attendance").doc(date).get();
+        if (doc.exists) {
+            return doc.data().records || {};
         }
+        return {};
+    } catch (error) {
+        console.error("Error loading attendance:", error);
+        return {};
     }
-    return {};
 }
 
-function saveAttendance(date, attendanceData) {
-    localStorage.setItem(date, JSON.stringify(attendanceData));
+async function saveAttendance(date, attendanceData) {
+    try {
+        await db.collection("attendance").doc(date).set({
+            records: attendanceData
+        });
+    } catch (error) {
+        console.error("Error saving attendance:", error);
+    }
 }
 
-function renderAttendancePage() {
+async function renderAttendancePage() {
     const today = getTodayDate();
     const dateDisplay = document.getElementById("todayDate");
     if (dateDisplay) {
         dateDisplay.textContent = today;
     }
 
-    const members = loadMembers();
+    const members = await loadMembers(); 
     const container = document.getElementById("attendanceContainer");
     if (!container) return;
 
     if (members.length === 0) {
-        container.innerHTML = "<p>No members added yet. Please add members first.</p>";
+        container.innerHTML = "<p class='no-data'>No members added yet. Please add members first.</p>";
         return;
     }
 
-    const existingAttendance = loadAttendance(today);
+    const existingAttendance = await loadAttendance(today); 
     let html = "<table><thead><tr><th>Member</th><th>Present</th></tr></thead><tbody>";
     members.forEach(member => {
         const isPresent = existingAttendance[member.id] === true;
@@ -199,32 +244,32 @@ function renderAttendancePage() {
     container.innerHTML = html;
 }
 
-function saveAttendanceForToday() {
+async function saveAttendanceForToday() {
     const today = getTodayDate();
-    const members = loadMembers();
+    const members = await loadMembers(); 
     const attendanceData = {};
 
     members.forEach(member => {
         const checkbox = document.getElementById(`attendance_${member.id}`);
-        attendanceData[member.id] = checkbox ? checkbox.checked : false;
+        attendanceData[member.id] = checkbox ? checkbox.checked : false; 
     });
 
-    saveAttendance(today, attendanceData);
+    await saveAttendance(today, attendanceData); 
     alert("Attendance saved successfully!");
 }
 
-// ==================== HISTORY PAGE ====================
+// ==================== HISTORY PAGE (FIREBASE LOGIC) ====================
 
-function loadAttendanceForDate(date) {
+async function loadAttendanceForDate(date) {
     if (!date) return;
 
-    const members = loadMembers();
-    const attendanceData = loadAttendance(date);
+    const members = await loadMembers(); 
+    const attendanceData = await loadAttendance(date); 
     const container = document.getElementById("historyContainer");
     if (!container) return;
 
     if (members.length === 0) {
-        container.innerHTML = "<p>No members added yet.</p>";
+        container.innerHTML = "<p class='no-data'>No members added yet.</p>";
         return;
     }
 
@@ -254,7 +299,7 @@ function loadAttendanceForDate(date) {
     const exportBtn = document.getElementById("exportBtn");
     if (exportBtn) {
         exportBtn.style.display = "inline-block";
-        exportBtn.onclick = () => exportToCSV(date, members, attendanceData);
+        exportBtn.onclick = () => exportToCSV(date, members, attendanceData); 
     }
 }
 
@@ -289,13 +334,15 @@ function escapeHtml(text) {
 
 // Initialize login page
 if (document.getElementById("loginForm")) {
-    document.getElementById("loginForm").addEventListener("submit", function(e) {
+    requireAuth(); 
+
+    document.getElementById("loginForm").addEventListener("submit", async function(e) {
         e.preventDefault();
         const password = document.getElementById("password").value;
-        if (login(password)) {
-            // Redirect handled in login function
+        
+        if (await login(password)) { 
+            // Redirect handled by requireAuth listener
         } else {
-            alert("Incorrect password. Please try again.");
             document.getElementById("password").value = "";
         }
     });
@@ -304,28 +351,32 @@ if (document.getElementById("loginForm")) {
 // Initialize attendance page
 if (document.getElementById("attendanceContainer")) {
     requireAuth();
-    renderAttendancePage();
+    (async () => {
+        await renderAttendancePage(); 
+    })();
     
     const saveBtn = document.getElementById("saveAttendanceBtn");
     if (saveBtn) {
-        saveBtn.addEventListener("click", saveAttendanceForToday);
+        saveBtn.addEventListener("click", saveAttendanceForToday); 
     }
 }
 
 // Initialize members page
 if (document.getElementById("membersList")) {
     requireAuth();
-    renderMembersList();
+    (async () => {
+        await renderMembersList(); 
+    })();
     
     const addForm = document.getElementById("addMemberForm");
     if (addForm) {
-        addForm.addEventListener("submit", function(e) {
+        addForm.addEventListener("submit", async function(e) {
             e.preventDefault();
             const nameInput = document.getElementById("memberName");
             const name = nameInput.value;
-            if (addMember(name)) {
+            if (await addMember(name)) { 
                 nameInput.value = "";
-                renderMembersList();
+                await renderMembersList(); 
             } else {
                 alert("Please enter a valid member name.");
             }
@@ -339,21 +390,22 @@ if (document.getElementById("historyContainer")) {
     
     const datePicker = document.getElementById("historyDate");
     if (datePicker) {
-        // Set default to today
-        datePicker.value = getTodayDate();
-        loadAttendanceForDate(datePicker.value);
+        (async () => {
+            const today = getTodayDate();
+            datePicker.value = today;
+            await loadAttendanceForDate(today); 
+        })();
         
-        datePicker.addEventListener("change", function() {
-            loadAttendanceForDate(this.value);
+        datePicker.addEventListener("change", async function() {
+            await loadAttendanceForDate(this.value); 
         });
     }
 }
 
-// Check auth on all protected pages
-if (window.location.pathname.includes("attendance.html") || 
+// Start auth listener on all pages to ensure proper redirection
+if (window.location.pathname.includes("index.html") || 
+    window.location.pathname.includes("attendance.html") || 
     window.location.pathname.includes("members.html") || 
     window.location.pathname.includes("history.html")) {
     requireAuth();
 }
-
-
