@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InChrist - Members</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background-pattern"></div>
+    <div class="container">
+        <div class="header-logo">
+            <img src="images/logo.svg" alt="InChrist Logo" class="logo-image" onerror="this.style.display='none'">
+            <h1>Members Management</h1>
+        </div>
+        <form id="addMemberForm">
+            <input type="text" id="memberName" placeholder="Enter member name" required autofocus>
+            <button type="submit" class="btn btn-primary">Add Member</button>
+        </form>
+        <div id="membersList">
+            <!-- Members list will be dynamically generated here -->
+        </div>
+        <div class="decorative-divider"></div>
+        <div class="nav-buttons">
+            <a href="attendance.html" class="btn btn-secondary">Attendance</a>
+            <a href="history.html" class="btn btn-secondary">History</a>
+            <button onclick="logout()" class="btn btn-danger">Logout</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
+
